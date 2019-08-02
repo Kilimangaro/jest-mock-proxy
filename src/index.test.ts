@@ -1,10 +1,10 @@
 import Foo from './fixture/foo';
-import { createMockProxy, createProxyFromMock } from '.';
+import { jestProxy, jestProxyFromMock } from '.';
 
 // API: createMockProxy
 // ---------------
 test('create mock proxy', () => {
-  const mock = createMockProxy<{
+  const mock = jestProxy<{
     foo(): void;
     bar(s: string): string;
   }>();
@@ -19,7 +19,7 @@ test('create mock proxy', () => {
 });
 
 test('mock proxy allows to set return values', () => {
-  const mock = createMockProxy<{
+  const mock = jestProxy<{
     foo(s: string): number;
   }>();
 
@@ -31,13 +31,13 @@ test('mock proxy allows to set return values', () => {
 });
 
 test('clean up mock data', () => {
-  const mock = createMockProxy<{
+  const mock = jestProxy<{
     foo(s: string): number;
   }>();
   mock.foo.mockReturnValue(1);
 
   mock.foo('foo');
-  mock.mockClear();
+  jest.clearAllMocks();
   expect(mock.foo.mock.calls).toMatchInlineSnapshot(`Array []`);
 });
 
@@ -47,8 +47,7 @@ jest.mock('./fixture/foo');
 
 test('input must be a mock', () => {
   // eslint-disable-next-line @typescript-eslint/no-extraneous-class
-  expect(() => createProxyFromMock(class {}))
-    .toThrowErrorMatchingInlineSnapshot(`
+  expect(() => jestProxyFromMock(class {})).toThrowErrorMatchingInlineSnapshot(`
 "Expected class {
     } to be a jest mock.
 If you want to mock a module, make sure you have called \\"jest.mock('<module name>')\\"."
@@ -56,15 +55,14 @@ If you want to mock a module, make sure you have called \\"jest.mock('<module na
 });
 
 test('import will be mocked behind the scences', () => {
-  const mockedFoo = createProxyFromMock(Foo);
+  const mockedFoo = jestProxyFromMock(Foo);
   const foo = new Foo();
 
-  // Use any, because TypeScript does not know how jest mocking works.
-  expect((mockedFoo as any) === foo).toBeTruthy();
+  expect(mockedFoo === foo).toBeTruthy();
 });
 
 test('proxy from mocked class', () => {
-  const mockedFoo = createProxyFromMock(Foo);
+  const mockedFoo = jestProxyFromMock(Foo);
   const foo = new Foo();
 
   mockedFoo.hello.mockReturnValue('I am mocked!');

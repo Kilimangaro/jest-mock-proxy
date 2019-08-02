@@ -1,22 +1,22 @@
-export const createMockProxy = <T>() => {
+export const jestProxy = <T>() => {
   const cache = new Map<any, jest.Mock>();
   const handler: ProxyHandler<object> = {
     get: (_, name) => {
-      if (name === 'mockClear') {
-        return () => cache.clear();
-      }
-
       if (!cache.has(name)) {
-        cache.set(name, jest.fn());
+        cache.set(name, jest.fn(() => new Proxy({}, handler)));
       }
-
       return cache.get(name);
     },
+    set: (_, name, v) => {
+      cache.set(name, v);
+      return true;
+    },
   };
-  return new Proxy({}, handler) as jest.Mocked<T> & { mockClear(): void };
+  const mockProxy = jest.fn(() => new Proxy({}, handler) as jest.Mocked<T>);
+  return mockProxy();
 };
 
-export const createProxyFromMock = <T extends new (...args: any[]) => any>(
+export const jestProxyFromMock = <T extends new (...args: any[]) => any>(
   mock: T
 ) => {
   if (!jest.isMockFunction(mock)) {
@@ -26,7 +26,7 @@ export const createProxyFromMock = <T extends new (...args: any[]) => any>(
     );
   }
 
-  const proxy = createMockProxy<InstanceType<T>>();
-  mock.mockImplementation(() => proxy);
-  return proxy;
+  const mockProxy = jestProxy<InstanceType<T>>();
+  mock.mockImplementation(() => mockProxy);
+  return mockProxy;
 };
